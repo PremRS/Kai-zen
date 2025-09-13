@@ -1,12 +1,16 @@
-# AppHider PoC
+# kai_zen
 
-Proof-of-concept Flutter app demonstrating three approaches to hide/block apps on Android:
+A new Flutter project.
 
-1. PackageManager enable/disable (works for many user apps)
-2. Custom-launcher-style hiding (disables LAUNCHER component)
-3. Accessibility blocking overlay (detects launches and shows a blocking activity)
+## Getting Started
 
-Features included:
-- Select installed apps, choose strategies, schedule hide interval, hide/unhide.
-- Usage stats (requires Usage Access permission).
-- Strict mode hints for Device Owner features (requires adb/device owner provisioning).
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

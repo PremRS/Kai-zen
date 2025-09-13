@@ -1,176 +1,122 @@
-// lib/main.dart
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:device_apps/device_apps.dart';
-import 'package:flutter/services.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:intl/intl.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await AndroidAlarmManager.initialize();
-  runApp(MyApp());
+void main() {
+  runApp(const MyApp());
 }
 
-const platform = MethodChannel('com.example.app_hider/channel');
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-class MyApp extends StatefulWidget {
+  // This widget is the root of your application.
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        // This is the theme of your application.
+        //
+        // TRY THIS: Try running your application with "flutter run". You'll see
+        // the application has a purple toolbar. Then, without quitting the app,
+        // try changing the seedColor in the colorScheme below to Colors.green
+        // and then invoke "hot reload" (save your changes or press the "hot
+        // reload" button in a Flutter-supported IDE, or press "r" if you used
+        // the command line to start the app).
+        //
+        // Notice that the counter didn't reset back to zero; the application
+        // state is not lost during the reload. To reset the state, use hot
+        // restart instead.
+        //
+        // This works for code too, not just values: Most code changes can be
+        // tested with just a hot reload.
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  List<Application>? apps;
-  Set<String> selectedPackageNames = {};
-  bool useDeviceDisable = true;
-  bool useLauncher = false;
-  bool useAccessibility = false;
-  bool strictMode = false;
-  TimeOfDay startTime = TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay endTime = TimeOfDay(hour: 17, minute: 0);
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
+
+  // This widget is the home page of your application. It is stateful, meaning
+  // that it has a State object (defined below) that contains fields that affect
+  // how it looks.
+
+  // This class is the configuration for the state. It holds the values (in this
+  // case the title) provided by the parent (in this case the App widget) and
+  // used by the build method of the State. Fields in a Widget subclass are
+  // always marked "final".
+
+  final String title;
 
   @override
-  void initState() {
-    super.initState();
-    _loadApps();
-  }
+  State<MyHomePage> createState() => _MyHomePageState();
+}
 
-  Future<void> _loadApps() async {
-    final all = await DeviceApps.getInstalledApplications(
-      includeSystemApps: false,
-      includeAppIcons: false,
-      onlyAppsWithLaunchIntent: true,
-    );
-    setState(() { apps = all; });
-  }
+class _MyHomePageState extends State<MyHomePage> {
+  int _counter = 0;
 
-  Future<void> _applyHide() async {
-    final pkgs = selectedPackageNames.toList();
-    final payload = {
-      'packages': pkgs,
-      'strictMode': strictMode,
-    };
-    if (useDeviceDisable) {
-      await platform.invokeMethod('disablePackages', payload);
-    }
-    if (useLauncher) {
-      await platform.invokeMethod('launcherHidePackages', payload);
-    }
-    if (useAccessibility) {
-      await platform.invokeMethod('startBlockingAccessibility', payload);
-    }
-
-    final now = DateTime.now();
-    var todayEnd = DateTime(now.year, now.month, now.day, endTime.hour, endTime.minute);
-    if (todayEnd.isBefore(now)) {
-      todayEnd = todayEnd.add(Duration(days: 1));
-    }
-    final millis = todayEnd.millisecondsSinceEpoch;
-    await AndroidAlarmManager.oneShotAt(
-      DateTime.fromMillisecondsSinceEpoch(millis),
-      (pkgs.hashCode & 0x7fffffff),
-      _alarmUnhide,
-      exact: true,
-      wakeup: true,
-      params: pkgs,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hidden — will unhide at ${DateFormat.jm().format(todayEnd)}')));
-  }
-
-  static Future<void> _alarmUnhide(List<dynamic>? params) async {
-    final pkgs = params?.cast<String>() ?? [];
-    final platform = MethodChannel('com.example.app_hider/channel');
-    try {
-      await platform.invokeMethod('enablePackages', {'packages': pkgs});
-      await platform.invokeMethod('stopBlockingAccessibility', {'packages': pkgs});
-      await platform.invokeMethod('launcherUnhidePackages', {'packages': pkgs});
-    } catch (e) {}
-  }
-
-  Future<void> _unhideNow() async {
-    final pkgs = selectedPackageNames.toList();
-    await platform.invokeMethod('enablePackages', {'packages': pkgs});
-    await platform.invokeMethod('stopBlockingAccessibility', {'packages': pkgs});
-    await platform.invokeMethod('launcherUnhidePackages', {'packages': pkgs});
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unhidden')));
+  void _incrementCounter() {
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+      _counter++;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'App Hider PoC',
-      home: Scaffold(
-        appBar: AppBar(title: Text('App Hider PoC')),
-        body: apps == null ? Center(child: CircularProgressIndicator()) : Column(
-          children: [
-            SwitchListTile(
-              title: Text('Use Device Disable (PackageManager)'),
-              value: useDeviceDisable,
-              onChanged: (v) => setState(() { useDeviceDisable = v; }),
+    // This method is rerun every time setState is called, for instance as done
+    // by the _incrementCounter method above.
+    //
+    // The Flutter framework has been optimized to make rerunning build methods
+    // fast, so that you can just rebuild anything that needs updating rather
+    // than having to individually change instances of widgets.
+    return Scaffold(
+      appBar: AppBar(
+        // TRY THIS: Try changing the color here to a specific color (to
+        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
+        // change color while the other colors stay the same.
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        // Here we take the value from the MyHomePage object that was created by
+        // the App.build method, and use it to set our appbar title.
+        title: Text(widget.title),
+      ),
+      body: Center(
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        child: Column(
+          // Column is also a layout widget. It takes a list of children and
+          // arranges them vertically. By default, it sizes itself to fit its
+          // children horizontally, and tries to be as tall as its parent.
+          //
+          // Column has various properties to control how it sizes itself and
+          // how it positions its children. Here we use mainAxisAlignment to
+          // center the children vertically; the main axis here is the vertical
+          // axis because Columns are vertical (the cross axis would be
+          // horizontal).
+          //
+          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
+          // action in the IDE, or press "p" in the console), to see the
+          // wireframe for each widget.
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text('You have pushed the button this many times:'),
+            Text(
+              '$_counter',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
-            SwitchListTile(
-              title: Text('Use Custom Launcher hiding'),
-              value: useLauncher,
-              onChanged: (v) => setState(() { useLauncher = v; }),
-            ),
-            SwitchListTile(
-              title: Text('Use Accessibility blocking overlay'),
-              value: useAccessibility,
-              onChanged: (v) => setState(() { useAccessibility = v; }),
-            ),
-            CheckboxListTile(
-              title: Text('Strict mode (requires Device Owner)'),
-              value: strictMode,
-              onChanged: (v) => setState(() { strictMode = v ?? false; }),
-            ),
-            ListTile(
-              title: Text('Start time: ${startTime.format(context)}'),
-              onTap: () async {
-                final t = await showTimePicker(context: context, initialTime: startTime);
-                if (t != null) setState(() => startTime = t);
-              },
-            ),
-            ListTile(
-              title: Text('End time: ${endTime.format(context)}'),
-              onTap: () async {
-                final t = await showTimePicker(context: context, initialTime: endTime);
-                if (t != null) setState(() => endTime = t);
-              },
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: apps!.length,
-                itemBuilder: (context, i) {
-                  final a = apps![i];
-                  final isSel = selectedPackageNames.contains(a.packageName);
-                  return ListTile(
-                    title: Text(a.appName),
-                    subtitle: Text(a.packageName),
-                    trailing: Checkbox(value: isSel, onChanged: (v) {
-                      setState(() {
-                        if (v == true) selectedPackageNames.add(a.packageName);
-                        else selectedPackageNames.remove(a.packageName);
-                      });
-                    }),
-                  );
-                },
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(child: ElevatedButton(onPressed: _applyHide, child: Text('Hide selected'))),
-                Expanded(child: ElevatedButton(onPressed: _unhideNow, child: Text('Unhide now'))),
-              ],
-            ),
-            ElevatedButton(onPressed: () async {
-              final res = await platform.invokeMethod('getUsageForPackages', {'packages': selectedPackageNames.toList()});
-              showDialog(context: context, builder: (_) => AlertDialog(title: Text('Usage stats'), content: Text('$res')));
-            }, child: Text('Show usage stats for selected apps')),
-            SizedBox(height: 8),
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
