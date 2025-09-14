@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kaizen"
+    namespace = "com.example.kai_zen"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

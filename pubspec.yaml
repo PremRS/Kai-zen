@@ -30,6 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  installed_apps: ^1.1.0     # list installed apps
+  intl: ^0.18.0
+  android_alarm_manager_plus: ^4.0.1 # schedule alarms
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -87,5 +90,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-module:
-  androidX: true
