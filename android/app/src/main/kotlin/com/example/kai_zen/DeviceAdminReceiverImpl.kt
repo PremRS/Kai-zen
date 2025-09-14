@@ -1,4 +1,4 @@
-package com.example.kaizen
+package com.example.kai_zen
 
 import android.app.admin.DeviceAdminReceiver
 import android.content.Context

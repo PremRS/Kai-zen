@@ -11,13 +11,13 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.annotation.NonNull
-import com.example.kaizen.DeviceAdminReceiverImpl
+import com.example.kai_zen.DeviceAdminReceiverImpl
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.example.kaizen/channel"
+    private val CHANNEL = "com.example.kai_zen/channel"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

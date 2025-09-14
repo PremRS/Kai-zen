@@ -1,4 +1,4 @@
-package com.example.kaizen
+package com.example.kai_zen
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent

@@ -1,8 +1,7 @@
-package com.example.kaizen
+package com.example.kai_zen
 
 import android.app.Activity
 import android.os.Bundle
-import android.widget.Button
 import android.widget.TextView
 
 class BlockingActivity : Activity() {

@@ -13,7 +13,7 @@ void main() async {
   runApp(MyApp());
 }
 
-const platform = MethodChannel('com.example.kaizen/channel');
+const platform = MethodChannel('com.example.kai_zen/channel');
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
