@@ -1,4 +1,4 @@
-package com.example.kai_zen
+package com.example.kaizen
 
 import io.flutter.embedding.android.FlutterActivity
 
