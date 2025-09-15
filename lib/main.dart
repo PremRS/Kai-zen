@@ -15,14 +15,26 @@ void main() async {
 
 const platform = MethodChannel('com.example.kai_zen/channel');
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Kaizen - App Hider',
+      home: const MyMainScreen(), // Your stateful logic now lives here
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
+class MyMainScreen extends StatefulWidget {
+  const MyMainScreen({super.key});
+
+  @override
+  State<MyMainScreen> createState() => _MyMainScreenState();
+}
+
+class _MyMainScreenState extends State<MyMainScreen> {
   List<AppInfo> apps = [];
   Set<String> selectedPackageNames = {};
   bool useDeviceDisable = true;
@@ -47,10 +59,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _applyHide() async {
     final pkgs = selectedPackageNames.toList();
-    final payload = {
-      'packages': pkgs,
-      'strictMode': strictMode,
-    };
+    final payload = {'packages': pkgs, 'strictMode': strictMode};
     if (useDeviceDisable) {
       await platform.invokeMethod('disablePackages', payload);
     }
@@ -62,7 +71,13 @@ class _MyAppState extends State<MyApp> {
     }
 
     final now = DateTime.now();
-    var todayEnd = DateTime(now.year, now.month, now.day, endTime.hour, endTime.minute);
+    var todayEnd = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      endTime.hour,
+      endTime.minute,
+    );
     if (todayEnd.isBefore(now)) {
       todayEnd = todayEnd.add(Duration(days: 1));
     }
@@ -77,12 +92,15 @@ class _MyAppState extends State<MyApp> {
       params: {'packages': pkgs},
     );
 
-    if(mounted) {
-ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Hidden — will unhide at ${DateFormat.jm().format(todayEnd)}')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Hidden — will unhide at ${DateFormat.jm().format(todayEnd)}',
+          ),
+        ),
+      );
     }
-    
   }
 
   static Future<void> _alarmUnhide(Map<String, dynamic>? params) async {
@@ -90,7 +108,9 @@ ScaffoldMessenger.of(context).showSnackBar(
     final platform = MethodChannel('com.example.app_hider/channel');
     try {
       await platform.invokeMethod('enablePackages', {'packages': pkgs});
-      await platform.invokeMethod('stopBlockingAccessibility', {'packages': pkgs});
+      await platform.invokeMethod('stopBlockingAccessibility', {
+        'packages': pkgs,
+      });
       await platform.invokeMethod('launcherUnhidePackages', {'packages': pkgs});
     } catch (e) {
       log(e.toString());
@@ -100,10 +120,14 @@ ScaffoldMessenger.of(context).showSnackBar(
   Future<void> _unhideNow() async {
     final pkgs = selectedPackageNames.toList();
     await platform.invokeMethod('enablePackages', {'packages': pkgs});
-    await platform.invokeMethod('stopBlockingAccessibility', {'packages': pkgs});
+    await platform.invokeMethod('stopBlockingAccessibility', {
+      'packages': pkgs,
+    });
     await platform.invokeMethod('launcherUnhidePackages', {'packages': pkgs});
-    if(mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unhidden')));
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unhidden')));
     }
   }
 
@@ -148,14 +172,20 @@ ScaffoldMessenger.of(context).showSnackBar(
                   ListTile(
                     title: Text('Start time: ${startTime.format(context)}'),
                     onTap: () async {
-                      final t = await showTimePicker(context: context, initialTime: startTime);
+                      final t = await showTimePicker(
+                        context: context,
+                        initialTime: startTime,
+                      );
                       if (t != null) setState(() => startTime = t);
                     },
                   ),
                   ListTile(
                     title: Text('End time: ${endTime.format(context)}'),
                     onTap: () async {
-                      final t = await showTimePicker(context: context, initialTime: endTime);
+                      final t = await showTimePicker(
+                        context: context,
+                        initialTime: endTime,
+                      );
                       if (t != null) setState(() => endTime = t);
                     },
                   ),
@@ -164,7 +194,9 @@ ScaffoldMessenger.of(context).showSnackBar(
                       itemCount: apps.length,
                       itemBuilder: (context, i) {
                         final a = apps[i];
-                        final isSel = selectedPackageNames.contains(a.packageName);
+                        final isSel = selectedPackageNames.contains(
+                          a.packageName,
+                        );
                         return ListTile(
                           title: Text(a.name),
                           subtitle: Text(a.packageName),
@@ -187,11 +219,17 @@ ScaffoldMessenger.of(context).showSnackBar(
                   Row(
                     children: [
                       Expanded(
-                          child: ElevatedButton(
-                              onPressed: _applyHide, child: Text('Hide selected'))),
+                        child: ElevatedButton(
+                          onPressed: _applyHide,
+                          child: Text('Hide selected'),
+                        ),
+                      ),
                       Expanded(
-                          child: ElevatedButton(
-                              onPressed: _unhideNow, child: Text('Unhide now'))),
+                        child: ElevatedButton(
+                          onPressed: _unhideNow,
+                          child: Text('Unhide now'),
+                        ),
+                      ),
                     ],
                   ),
                 ],
