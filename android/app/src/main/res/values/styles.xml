@@ -15,4 +15,10 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+
+    <string name="app_name">Kaizen</string>
+    <string name="accessibility_service_desc">
+        App Hider blocks distracting apps by showing a blocking screen until focus time is over.
+    </string>
+
 </resources>

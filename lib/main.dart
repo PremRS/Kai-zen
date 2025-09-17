@@ -43,6 +43,8 @@ class _MyMainScreenState extends State<MyMainScreen> {
   bool strictMode = false;
   TimeOfDay startTime = TimeOfDay(hour: 9, minute: 0);
   TimeOfDay endTime = TimeOfDay(hour: 17, minute: 0);
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
@@ -93,7 +95,7 @@ class _MyMainScreenState extends State<MyMainScreen> {
     );
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _messengerKey.currentState?.showSnackBar(
         SnackBar(
           content: Text(
             'Hidden — will unhide at ${DateFormat.jm().format(todayEnd)}',
@@ -103,9 +105,9 @@ class _MyMainScreenState extends State<MyMainScreen> {
     }
   }
 
-  static Future<void> _alarmUnhide(Map<String, dynamic>? params) async {
+  static Future<void> _alarmUnhide(int id, Map<String, dynamic>? params) async {
     final pkgs = (params?['packages'] as List<dynamic>?)?.cast<String>() ?? [];
-    final platform = MethodChannel('com.example.app_hider/channel');
+    final platform = MethodChannel('com.example.kai_zen/channel');
     try {
       await platform.invokeMethod('enablePackages', {'packages': pkgs});
       await platform.invokeMethod('stopBlockingAccessibility', {
@@ -125,15 +127,20 @@ class _MyMainScreenState extends State<MyMainScreen> {
     });
     await platform.invokeMethod('launcherUnhidePackages', {'packages': pkgs});
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unhidden')));
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unhidden',
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: _messengerKey,
       title: 'Kaizen - App Hider',
       home: Scaffold(
         appBar: AppBar(title: Text('Kai-zen')),
