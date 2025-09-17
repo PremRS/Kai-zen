@@ -3,43 +3,50 @@ package com.example.kai_zen
 import android.app.Activity
 import android.os.Bundle
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 
 class BlockingActivity : Activity() {
-    protected override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    companion object {
+        private val instances = mutableListOf<BlockingActivity>()
+        fun finishAll() {
+            for (inst in instances.toList()) {
+                try { inst.finish() } catch (ignored: Exception) {}
+            }
+            instances.clear()
+        }
+    }
 
-        // Make it fullscreen and stay on top
-        getWindow().setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN or
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN or
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        instances.add(this)
+
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
 
-        val layout: LinearLayout = LinearLayout(this)
-        layout.setOrientation(LinearLayout.VERTICAL)
+        val pkg = intent.getStringExtra("blockedPkg") ?: "App"
+
+        val layout = LinearLayout(this)
+        layout.orientation = LinearLayout.VERTICAL
         layout.setPadding(50, 200, 50, 50)
 
-        val message: TextView = TextView(this)
-        message.setText("⚠️ This app is blocked during your focus time!")
-        message.setTextSize(20f)
-        message.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER)
-
-        val exitButton: Button = Button(this)
-        exitButton.setText("Return to Home")
-        exitButton.setOnClickListener({ v ->
-            finishAffinity() // Close BlockingActivity and return to home
-        })
+        val message = TextView(this)
+        message.text = "\u26A0\uFE0F $pkg is blocked during your focus time!\n\nOpen the App Hider and press <Unhide> to restore access."
+        message.textSize = 18f
+        message.textAlignment = TextView.TEXT_ALIGNMENT_CENTER
 
         layout.addView(message)
-        layout.addView(exitButton)
         setContentView(layout)
     }
 
-    public override fun onBackPressed() {
-        // Disable back button to enforce blocking
+    override fun onDestroy() {
+        super.onDestroy()
+        instances.remove(this)
+    }
+
+    override fun onBackPressed() {
+        // disable back navigation to enforce blocking
     }
 }

@@ -11,7 +11,6 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.annotation.NonNull
-import com.example.kai_zen.DeviceAdminReceiverImpl
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -45,15 +44,19 @@ class MainActivity: FlutterActivity() {
                     result.success(ok)
                 }
                 "startBlockingAccessibility" -> {
-                    // request user to enable accessibility service
                     val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(intent)
                     result.success(true)
                 }
                 "stopBlockingAccessibility" -> {
-                    // user must disable service manually; or we can signal via broadcast
-                    result.success(true)
+                    try {
+                        BlockingActivity.finishAll()
+                        BlockingAccessibilityService.blockedPackages.clear()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
                 "getUsageForPackages" -> {
                     val packages = call.argument<List<String>>("packages") ?: listOf()
@@ -65,17 +68,16 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // Approach 1: PackageManager disable/enable apps (works for non-system apps; requires permissions)
     private fun disablePackages(packages: List<String>, strict: Boolean): Boolean {
         val pm = packageManager
         var ok = true
         for (pkg in packages) {
             try {
-                // If you are device owner, you can use DevicePolicyManager.setApplicationHidden or setApplicationEnabledSetting
-                pm.setApplicationEnabledSetting(pkg, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                pm.setApplicationEnabledSetting(pkg,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP)
                 Log.i("AppHider", "Disabled $pkg")
                 if (strict) {
-                    // Strict mode attempt: block uninstall requires DevicePolicyManager and device owner
                     val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                     val adminComponent = ComponentName(this, DeviceAdminReceiverImpl::class.java)
                     if (dpm.isDeviceOwnerApp(packageName)) {
@@ -87,7 +89,16 @@ class MainActivity: FlutterActivity() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("AppHider", "Failed to disable $pkg: ${e.message}")
+                Log.e("AppHider", "Failed to disable $pkg: ${e.message} - falling back to overlay")
+                try {
+                    BlockingAccessibilityService.blockedPackages.add(pkg)
+                    val intent = Intent(this, BlockingActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    intent.putExtra("blockedPkg", pkg)
+                    startActivity(intent)
+                } catch (ex: Exception) {
+                    Log.e("AppHider", "Fallback overlay failed for $pkg: ${ex.message}")
+                }
                 ok = false
             }
         }
@@ -99,8 +110,9 @@ class MainActivity: FlutterActivity() {
         var ok = true
         for (pkg in packages) {
             try {
-                pm.setApplicationEnabledSetting(pkg, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-                // If strict mode was used earlier, try to unblock uninstall
+                pm.setApplicationEnabledSetting(pkg,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP)
                 val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
                 val adminComponent = ComponentName(this, DeviceAdminReceiverImpl::class.java)
                 if (dpm.isDeviceOwnerApp(packageName)) {
@@ -109,27 +121,30 @@ class MainActivity: FlutterActivity() {
                     }
                 }
                 Log.i("AppHider", "Enabled $pkg")
+                BlockingAccessibilityService.blockedPackages.remove(pkg)
+                BlockingActivity.finishAll()
             } catch (e: Exception) {
-                Log.e("AppHider", "Failed to enable $pkg: ${e.message}")
+                Log.e("AppHider", "Failed to enable $pkg: ${e.message} - clearing overlay if present")
+                BlockingAccessibilityService.blockedPackages.remove(pkg)
+                BlockingActivity.finishAll()
                 ok = false
             }
         }
         return ok
     }
 
-    // Approach 2 (launcher): If your app is a launcher, you control which icons are shown.
-    // This example toggles a "hidden" component alias for target packages' LAUNCHER activity.
     private fun launcherHide(packages: List<String>): Boolean {
         val pm = packageManager
         var ok = true
         for (pkg in packages) {
             try {
-                // Attempt to find the main LAUNCHER activity and disable it
                 val intent = packageManager.getLaunchIntentForPackage(pkg)
                 if (intent != null) {
                     val comp = intent.component
                     if (comp != null) {
-                        pm.setComponentEnabledSetting(comp, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                        pm.setComponentEnabledSetting(comp,
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP)
                         Log.i("AppHider", "Launcher-hidden $pkg")
                     }
                 }
@@ -150,7 +165,9 @@ class MainActivity: FlutterActivity() {
                 if (intent != null) {
                     val comp = intent.component
                     if (comp != null) {
-                        pm.setComponentEnabledSetting(comp, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+                        pm.setComponentEnabledSetting(comp,
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                            PackageManager.DONT_KILL_APP)
                         Log.i("AppHider", "Launcher-unhidden $pkg")
                     }
                 }
@@ -162,12 +179,11 @@ class MainActivity: FlutterActivity() {
         return ok
     }
 
-    // Usage stats: returns a simple map with lastTimeUsed and totalTimeInForeground for the past day.
     private fun getUsageStatsForPackages(packages: List<String>): Map<String, Map<String, Long>> {
         val usageMap = mutableMapOf<String, Map<String, Long>>()
         val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val end = System.currentTimeMillis()
-        val start = end - 1000L*60*60*24 // past 24 hours
+        val start = end - 1000L*60*60*24
         val stats: List<UsageStats> = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
         val byPkg = stats.associateBy { it.packageName }
         for (pkg in packages) {
@@ -184,5 +200,3 @@ class MainActivity: FlutterActivity() {
         return usageMap
     }
 }
-
-

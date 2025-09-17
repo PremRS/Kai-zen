@@ -7,9 +7,8 @@ import android.util.Log
 
 class BlockingAccessibilityService : AccessibilityService() {
     companion object {
-        var blockedPackages = setOf<String>()
+        val blockedPackages = mutableSetOf<String>() 
     }
-    private val blockedPackages = mutableSetOf<String>()
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
@@ -17,6 +16,7 @@ class BlockingAccessibilityService : AccessibilityService() {
             if (blockedPackages.contains(pkg)) {
                 val intent = Intent(this, BlockingActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                intent.putExtra("blockedPkg", pkg)
                 startActivity(intent)
             }
         }
